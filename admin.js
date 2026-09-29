@@ -1,89 +1,9 @@
-const SUPABASE_URL = "https://nknmdsjhhgfgwwofbpzg.supabase.co";
-
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rbm1kc2poaGdmZ3d3b2ZicHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjU3NDksImV4cCI6MjA5ODYwMTc0OX0.jGGvCBs9li3L8lSiJd8VOMIq9_L2AipGbyY70fmbEQw";
-
-const client = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
-const tableBody = document.getElementById("registrationsTable");
-const stats = document.getElementById("stats");
-const filterArea = document.getElementById("filterArea");
-const filterGender = document.getElementById("filterGender");
-const filterSystem = document.getElementById("filterSystem");
-let allRegistrations = [];
-
-[filterArea, filterGender, filterSystem].forEach((item) => item.addEventListener("change", renderRegistrations));
-document.addEventListener("DOMContentLoaded", loadRegistrations);
-
-async function loadRegistrations() {
-  const { data, error } = await client.from("student_registrations").select("*").order("created_at", { ascending: false });
-
-  if (error) {
-    console.error(error);
-    tableBody.innerHTML = '<tr><td colspan="6">تعذر تحميل البيانات. راجع إعدادات Supabase.</td></tr>';
-    stats.textContent = "تعذر تحميل الإحصائيات";
-    return;
-  }
-
-  allRegistrations = data || [];
-  renderRegistrations();
-}
-
-function getFilteredRegistrations() {
-  return allRegistrations.filter((item) =>
-    (!filterArea.value || item.area === filterArea.value) &&
-    (!filterGender.value || item.gender === filterGender.value) &&
-    (!filterSystem.value || item.study_system === filterSystem.value)
-  );
-}
-
-function renderRegistrations() {
-  const filtered = getFilteredRegistrations();
-  stats.textContent = `إجمالي المسجلين: ${allRegistrations.length} — النتائج المعروضة: ${filtered.length}`;
-
-  if (!filtered.length) {
-    tableBody.innerHTML = '<tr><td colspan="6">لا توجد بيانات مطابقة.</td></tr>';
-    return;
-  }
-
-  tableBody.innerHTML = filtered.map((item) => `
-    <tr>
-      <td>${escapeHtml(item.student_name)}</td>
-      <td>${escapeHtml(item.phone)}</td>
-      <td>${escapeHtml(item.area)}</td>
-      <td>${escapeHtml(item.gender)}</td>
-      <td>${escapeHtml(item.study_system)}</td>
-      <td>${formatDate(item.created_at)}</td>
-    </tr>
-  `).join("");
-}
-
-function exportRegistrationsCSV() {
-  const data = getFilteredRegistrations();
-  if (!data.length) return alert("لا توجد بيانات للتصدير.");
-
-  const rows = [["الاسم", "رقم الهاتف", "البلد", "النوع", "نظام الدراسة", "وقت التسجيل"], ...data.map((item) => [
-    item.student_name, item.phone, item.area, item.gender, item.study_system, formatDate(item.created_at)
-  ])];
-
-  const csv = "\uFEFF" + rows.map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "student-registrations.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat("ar-EG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
-
-function escapeHtml(value) {
-  const div = document.createElement("div");
-  div.textContent = value ?? "";
-  return div.innerHTML;
-}
+"use strict";
+const SUPABASE_URL="https://nknmdsjhhgfgwwofbpzg.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXJhYmFzZSIsInJlZiI6Im5rbm1kc2poaGdmZ3d3b2ZicHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMjU3NDksImV4cCI6MjA5ODYwMTc0OX0.jGGvCBs9li3L8lSiJd8VOMIq9_L2AipGbyY70fmbEQw";
+const client=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);let all=[];const list=document.getElementById('feedbackList'),filter=document.getElementById('ratingFilter'),search=document.getElementById('searchInput');document.addEventListener('DOMContentLoaded',load);filter.addEventListener('change',render);search.addEventListener('input',render);document.getElementById('refreshButton').addEventListener('click',load);document.getElementById('exportButton').addEventListener('click',exportCSV);
+async function load(){list.innerHTML='<div class="loading-card">جاري تحميل التقييمات...</div>';const {data,error}=await client.from('teacher_feedback').select('*').order('created_at',{ascending:false});if(error){console.error(error);list.innerHTML='<div class="loading-card error-text">تعذر تحميل البيانات. نفّذ أمر صلاحية قراءة الأدمن الموجود في ملف SUPABASE-SETUP.sql.</div>';return}all=data||[];stats();render()}
+function stats(){document.getElementById('totalStat').textContent=all.length;document.getElementById('averageStat').textContent=all.length?(all.reduce((a,x)=>a+Number(x.rating||0),0)/all.length).toFixed(1)+' / 5':'—';document.getElementById('fiveStat').textContent=all.filter(x=>Number(x.rating)===5).length;const d=Date.now()-7*864e5;document.getElementById('weekStat').textContent=all.filter(x=>new Date(x.created_at).getTime()>=d).length}
+function getFiltered(){const r=filter.value,q=search.value.trim().toLowerCase();return all.filter(x=>(!r||String(x.rating)===r)&&(!q||[x.positives,x.negatives,x.message].some(v=>(v||'').toLowerCase().includes(q))))}
+function render(){const rows=getFiltered();document.getElementById('resultCount').textContent=`${rows.length} نتيجة`;if(!rows.length){list.innerHTML='<div class="loading-card">لا توجد تقييمات مطابقة.</div>';return}list.innerHTML=rows.map(x=>`<article class="feedback-item"><div class="feedback-head"><div class="stars-read">${'★'.repeat(x.rating)}<span>${'★'.repeat(5-x.rating)}</span></div><time>${formatDate(x.created_at)}</time></div><div class="feedback-columns"><div><b class="positive-title">＋ الإيجابيات</b><p>${esc(x.positives)||'<i>لم يكتب</i>'}</p></div><div><b class="negative-title">△ التحسينات</b><p>${esc(x.negatives)||'<i>لم يكتب</i>'}</p></div></div>${x.message?`<div class="student-message"><b>✦ الرسالة</b><p>${esc(x.message)}</p></div>`:''}</article>`).join('')}
+function formatDate(v){return new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v))}function esc(v){return String(v||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}function exportCSV(){const rows=getFiltered();if(!rows.length)return alert('لا توجد بيانات للتصدير.');const data=[['التقييم','الإيجابيات','السلبيات','الرسالة','التاريخ'],...rows.map(x=>[x.rating,x.positives||'',x.negatives||'',x.message||'',formatDate(x.created_at)])];const csv='\uFEFF'+data.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='feedback.csv';a.click();URL.revokeObjectURL(a.href)}
